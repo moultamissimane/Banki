@@ -1,35 +1,86 @@
-const authController = {};
+import { UserModel } from "../models";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+dotenv.config();
 
-// register
-authController.register = async (req, res) => {
+// login user
+export const Login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.create({ email, password });
-    const token = jwt.sign({ userId: user._id }, key.jwtSecret);
-    res.send({ token });
-  } catch (err) {
-    return res.status(422).send(err.message);
+    const existingUser = await UserModel.findOne({
+      email: req.body.email,
+    });
+    if (!existingUser) {
+      return res.status(400).send({
+        message: "User does not exist",
+        success: false,
+        data: null,
+      });
+    }
+    const isPasswordCorrect = await bcrypt.compare(
+      req.body.password,
+      existingUser.password
+    );
+    if (!isPasswordCorrect) {
+      return res.status(400).send({
+        message: "Incorrect password",
+        success: false,
+        data: null,
+      });
+    }
+    const token = jwt.sign(
+      { userId: existingUser._id },
+      process.env.TOKEN_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
+    res.status(200).send({
+      message: "User logged in successfully",
+      success: true,
+      token: token,
+      user: existingUser,
+    });
+  } catch (error) {
+    res.status(500).send({
+      message: error.message,
+      success: false,
+      data: null,
+    });
   }
 };
 
-// login
-authController.login = async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(422).send({ error: "Must provide email and password" });
-  }
-  const user = await User.findOne({ email });
-  if (!user) {
-    return res.status(422).send({ error: "Invalid password or email" });
-  }
+// register user
+export const Register = async (req, res) => {
   try {
-    await user.comparePassword(password);
-    const token = jwt.sign({ userId: user._id }, key.jwtSecret);
-    res.send({ token });
-  } catch (err) {
-    return res.status(422).send({ error: "Invalid password or email" });
+    const existingUser = await UserModel.findOne({
+      email: req.body.email,
+    });
+    if (existingUser) {
+      return res.status(400).send({
+        message: "User already exists",
+        success: false,
+        data: null,
+      });
+    }
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(req.body.password, salt);
+    const user = new UserModel({
+      fullName: req.body.firstName,
+      email: req.body.email,
+      password: hashedPassword,
+    });
+    const savedUser = await user.save();
+    res.send({
+      message: "User created successfully",
+      status: true,
+      data: savedUser,
+    });
+  } catch (error) {
+    res.send({
+      message: error.message,
+      status: false,
+      data: null,
+    });
   }
 };
-
-// export auth controller
-export default authController;

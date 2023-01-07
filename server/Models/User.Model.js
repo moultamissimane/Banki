@@ -2,7 +2,7 @@ import { model, Schema } from "mongoose";
 import uniqueValidator from 'mongoose-unique-validator';
 
 const userSchema = new Schema({
-  FullName: {
+  fullName: {
     type: String,
     required: true,
   },
