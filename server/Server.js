@@ -1,91 +1,35 @@
-// const express = require("express");
-// const cors = require("cors");
-// const dbConfigConnection = require("./Config/Config");
+import express from "express";
+import mongoose from "mongoose";
+import key from "./keys";
+import authRouter from "./router/auth";
 
-// class Server {
-//   constructor() {
-//     this.app = express();
-//     this.port = process.env.PORT;
-
-//     this.apiPaths = {
-//       users: "/api/users",
-//       login: "/api/login",
-//       transactions: "/api/transactions",
-//       session: "/api/session",
-//     };
-
-//     this.middlewares();
-//     this.routes();
-//     this.dbConnection();
-//   }
-
-//   async dbConnection() {
-//     await dbConfigConnection();
-//   }
-
-//   middlewares() {
-//     this.app.use(express.json());
-//     this.app.use(cors());
-//   }
-
-//   routes() {
-//     this.app.use(this.apiPaths.users, require("./Routes/UserRoutes.js"));
-//     this.app.use(this.apiPaths.login, require("./Routes/LoginRoutes.js"));
-//     this.app.use(
-//       this.apiPaths.transactions,
-//       require("./Routes/TransactionRoutes.js")
-//     );
-//     this.app.use(this.apiPaths.session, require("./Routes/SessionRoutes.js"));
-//   }
-
-//   listen() {
-//     this.app.listen(this.port, () => {
-//       console.log(`Server running on port ${this.port}`);
-//     });
-//   }
-// }
-
-// module.exports = Server;
-
-// create server from express without using class method
-const express = require("express");
-const cors = require("cors");
-const dbConfigConnection = require("./Config/Config");
 const app = express();
-const port = process.env.PORT;
+const PORT = process.env.PORT || 8080;
 
-const apiPaths = {
-  users: "/api/users",
-  login: "/api/login",
-  transactions: "/api/transactions",
-  session: "/api/session",
-};
+mongoose.connect(key.mongoURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  useCreateIndex: true,
+});
 
-const middlewares = () => {
-  app.use(express.json());
-  app.use(cors());
-};
+// parse requests of content-type - application/x-www-form-urlencoded
+app.use(express.urlencoded({ extended: true }));
 
-const routes = () => {
-  app.use(apiPaths.users, require("./Routes/UserRoutes.js"));
-  app.use(apiPaths.login, require("./Routes/LoginRoutes.js"));
-  app.use(apiPaths.transactions, require("./Routes/TransactionRoutes.js"));
-  app.use(apiPaths.session, require("./Routes/SessionRoutes.js"));
-};
+app.use(
+  cookieSession({
+    name: "session",
+    secret: "COOKIE_SECRET",
+    httpOnly: true,
+  })
+);
 
-const dbConnection = async () => {
-  await dbConfigConnection();
-};
+// simple route
+app.get("/", (req, res) => {
+  res.json({ message: "Welcome to banki app." });
+});
 
-const listen = () => {
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-  });
-};
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}.`);
+});
 
-module.exports = {
-  middlewares,
-  routes,
-  dbConnection,
-  listen,
-};
+app.listen(port, () => console.log(`Example app listening on port ${port}!`));
